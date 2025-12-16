@@ -201,7 +201,27 @@
         });
     }
 
+    // Helper: Update Button State
+    function setButtonLoadingState(isLoading) {
+        const btn = document.getElementById('tm-one-click-login');
+        if (!btn) return;
+
+        if (isLoading) {
+            btn.innerText = '登录中...';
+            btn.style.backgroundColor = '#666'; // Grey out
+            btn.disabled = true;
+            btn.style.cursor = 'not-allowed';
+        } else {
+            btn.innerText = '一键登录';
+            btn.style.backgroundColor = '#10a37f'; // Original Green
+            btn.disabled = false;
+            btn.style.cursor = 'pointer';
+        }
+    }
+
     function handleOneClickLogin() {
+        setButtonLoadingState(true); // Disable button
+
         const given_name = generateRandomName();
         const family_name = generateRandomName();
         const emailPrefix = generateRandomString(10);
@@ -258,14 +278,34 @@
                             if (loginResp.status === 200 || loginResp.status === 201) {
                                 // Both requests complete. Start automation.
                                 startAutomationSequence(email);
+                                // Note: We don't enable the button here because the page is about to redirect.
+                                // If redirection fails or takes time, the user sees "Login..." which is accurate.
+                                // If you want to restore it anyway after a timeout, we could do that.
+                                setTimeout(() => {
+                                     setButtonLoadingState(false);
+                                }, 5000); // Safety fallback
                             } else {
                                 console.error("Login API failed");
+                                alert("登录接口请求失败，请重试");
+                                setButtonLoadingState(false);
                             }
+                        },
+                        onerror: function(err) {
+                            console.error("Login Network Error:", err);
+                            alert("登录网络错误");
+                            setButtonLoadingState(false);
                         }
                     });
                 } else {
                     console.error("Registration failed");
+                    alert("注册失败，请重试");
+                    setButtonLoadingState(false);
                 }
+            },
+            onerror: function(err) {
+                console.error("Register Network Error:", err);
+                alert("注册网络错误");
+                setButtonLoadingState(false);
             }
         });
     }
