@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @version      0.2
 // @description  一键注册并登录 ChatGPT
-// @author       Trae
+// @author       Trespassing
 // @match        https://chatgpt.com/*
 // @match        https://chatgpt.com*
 // @match        https://auth.openai.com/*
@@ -106,28 +106,99 @@
     function createAndAttachButton() {
         if (document.getElementById('tm-one-click-login')) return;
 
-        // Determine if we should show the button
-        // Show on chatgpt.com OR on auth.openai.com login page
-        // But if we are in the middle of an auto-login process, maybe don't show it?
-        // For now, always show it for manual override.
-
         const btn = document.createElement('button');
         btn.id = 'tm-one-click-login';
         btn.innerText = '一键登录';
         btn.style.position = 'fixed';
-        btn.style.top = '10px';
-        btn.style.right = '10px';
+        
+        // Load saved position or default
+        const savedTop = GM_getValue('btn_top');
+        const savedLeft = GM_getValue('btn_left');
+
+        if (savedTop && savedLeft) {
+            btn.style.top = savedTop;
+            btn.style.left = savedLeft;
+            btn.style.right = 'auto';
+        } else {
+            btn.style.top = '10px';
+            btn.style.right = '10px';
+        }
+
         btn.style.zIndex = '9999';
         btn.style.padding = '10px 20px';
         btn.style.backgroundColor = '#10a37f';
         btn.style.color = 'white';
         btn.style.border = 'none';
         btn.style.borderRadius = '5px';
-        btn.style.cursor = 'pointer';
+        btn.style.cursor = 'pointer'; // Default cursor
 
         document.body.appendChild(btn);
 
-        btn.addEventListener('click', handleOneClickLogin);
+        // --- Drag Logic ---
+        let isDragging = false;
+        let startX, startY, initialLeft, initialTop;
+        let hasMoved = false;
+
+        btn.addEventListener('mousedown', (e) => {
+            // Only left click
+            if (e.button !== 0) return;
+
+            isDragging = true;
+            hasMoved = false;
+            startX = e.clientX;
+            startY = e.clientY;
+            
+            btn.style.cursor = 'move'; // Change cursor when dragging starts
+
+            const rect = btn.getBoundingClientRect();
+            initialLeft = rect.left;
+            initialTop = rect.top;
+
+            // Switch to left/top positioning for dragging
+            btn.style.right = 'auto';
+            btn.style.left = initialLeft + 'px';
+            btn.style.top = initialTop + 'px';
+            
+            e.preventDefault(); // Prevent text selection
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+
+            // Threshold to distinguish click from drag
+            if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+                hasMoved = true;
+            }
+
+            btn.style.left = (initialLeft + dx) + 'px';
+            btn.style.top = (initialTop + dy) + 'px';
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                btn.style.cursor = 'pointer'; // Reset cursor
+                if (hasMoved) {
+                    // Save new position
+                    GM_setValue('btn_top', btn.style.top);
+                    GM_setValue('btn_left', btn.style.left);
+                }
+            }
+        });
+
+        // Click Handler - wrapped to check for drag
+        btn.addEventListener('click', (e) => {
+            if (hasMoved) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log("Drag detected, click ignored.");
+                return;
+            }
+            handleOneClickLogin();
+        });
     }
 
     function handleOneClickLogin() {
