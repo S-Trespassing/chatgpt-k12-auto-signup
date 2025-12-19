@@ -1,4 +1,4 @@
-# chatgpt-k12-auto-signup
+# (已失效)chatgpt-k12-auto-signup
 ## 一键登录k12认证的chatgpt账号,白嫖GPT5.2
 ### 点击一键登录之后不要操作,等待自动注册完成登录即可
 
